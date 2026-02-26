@@ -15,6 +15,7 @@ from .utils import port_scan
 from .utils import status_bar
 from .utils import timer
 from .utils.evasion import get_random_headers
+from .utils.rtsp_probe import rtsp_probe, rtsp_try_creds, RTSP_PORTS
 
 
 @common.singleton
@@ -25,6 +26,8 @@ class Core:
         self.data = Data(config)
         self.snapshot_pipeline = SnapshotPipeline(config)
         self.poc_dict = get_poc_dict(self.config)
+        # Get the RTSP POC if available
+        self.rtsp_poc = self.poc_dict.get('__rtsp__', [])
 
     def finish(self):
         return (self.data.done >= self.data.total) and (self.snapshot_pipeline.task_count <= 0)
@@ -90,6 +93,23 @@ class Core:
                                 self.snapshot_pipeline.put((poc.exploit, results))
                     if not verified:
                         self.data.add_not_vulnerable([ip, str(port), product])
+
+        # RTSP probing (separate from HTTP fingerprinting)
+        if not getattr(self.config, 'disable_rtsp', False) and self.rtsp_poc:
+            for rtsp_port in RTSP_PORTS:
+                rtsp_port_str = str(rtsp_port)
+                # Skip if this port was already in the HTTP scan list
+                if rtsp_port_str in [str(p) for p in ports]:
+                    continue
+                if port_scan(ip, rtsp_port_str, self.config.timeout):
+                    logger.info(f"{ip} RTSP port {rtsp_port} is open")
+                    self.config.rate_limiter.wait(ip)
+                    for poc in self.rtsp_poc:
+                        if results := poc.verify(ip, rtsp_port):
+                            self.data.add_found()
+                            self.data.add_vulnerable(results[:6])
+                            break
+
         self.data.add_done()
         self.data.record_running_state()
 
