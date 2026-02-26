@@ -3,6 +3,7 @@ import hashlib
 import os
 import random
 import time
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 from threading import Lock, RLock, Thread
@@ -33,11 +34,27 @@ class Data:
         self.vulnerable_lock = Lock()
         self.not_vulneralbe_lock = Lock()
 
+        # Enhanced dashboard tracking
+        self.recent_vulns = deque(maxlen=5)  # last 5 vulnerability findings
+        self.recent_vulns_lock = Lock()
+        self.device_counts = {}  # product -> count of vulnerabilities
+        self.device_counts_lock = Lock()
+        self.rate_samples = deque(maxlen=20)  # (timestamp, done_count) for rate calc
+        self.rate_samples_lock = Lock()
+        self.current_target = ''  # IP currently being scanned
+        self.current_target_lock = Lock()
+        self.last_vuln_url = ''  # last vulnerable target as http URL
+        self.last_vuln_url_lock = Lock()
+        self.target_start_time = 0.0  # when current target scan began
+        self.last_target_time = 0.0   # how long last target took (seconds)
+        self.total_target_time = 0.0  # cumulative scan time for avg calc
+        self.target_time_lock = Lock()
+        self.is_resumed = False       # whether scan was resumed from previous state
+
         self.preprocess()
 
     def _load_state_from_disk(self):
-        """加载上次运行状态"""
-        # done & found & run time
+        """Load previous run state if it exists"""
         state_file = os.path.join(self.config.out_dir, f".{self.taskid}")
         if os.path.exists(state_file):
             with open(state_file, 'r') as f:
@@ -46,6 +63,24 @@ class Data:
                     self.done = int(_done)
                     self.found = int(_found)
                     self.runned_time = float(_runned_time)
+                    if self.done > 0:
+                        self.is_resumed = True
+
+    def clear_previous_state(self):
+        """Clear previous run state to start fresh"""
+        state_file = os.path.join(self.config.out_dir, f".{self.taskid}")
+        if os.path.exists(state_file):
+            os.remove(state_file)
+        # Clear results files
+        vuln_file = os.path.join(self.config.out_dir, self.config.vulnerable)
+        not_vuln_file = os.path.join(self.config.out_dir, self.config.not_vulnerable)
+        for f in [vuln_file, not_vuln_file]:
+            if os.path.exists(f):
+                open(f, 'w').close()
+        self.done = 0
+        self.found = 0
+        self.runned_time = 0
+        self.is_resumed = False
 
     def _cal_total(self):
         """计算目标总数"""
@@ -134,11 +169,26 @@ class Data:
         elif isinstance(item, list):
             with self.done_lock:
                 self.done += sum(item)
+        # Record sample for scan rate calculation
+        with self.rate_samples_lock:
+            self.rate_samples.append((time.time(), self.done))
 
     def add_vulnerable(self, item):
         with self.vulnerable_lock:
             self.vulnerable.writelines(','.join(item) + '\n')
             self.vulnerable.flush()
+        # Track for dashboard
+        with self.recent_vulns_lock:
+            self.recent_vulns.append(item)
+        if len(item) >= 2:
+            ip, port = item[0], item[1]
+            scheme = 'https' if str(port) in ('443', '8443') else 'http'
+            with self.last_vuln_url_lock:
+                self.last_vuln_url = f"{scheme}://{ip}:{port}"
+        if len(item) >= 3:
+            product = item[2].split('-')[0] if '-' in item[2] else item[2]
+            with self.device_counts_lock:
+                self.device_counts[product] = self.device_counts.get(product, 0) + 1
 
     def add_not_vulnerable(self, item):
         with self.not_vulneralbe_lock:

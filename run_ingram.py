@@ -9,6 +9,7 @@ import warnings; warnings.filterwarnings("ignore")
 from gevent import monkey; monkey.patch_all(thread=False)
 #================================================================
 
+import hashlib
 import os
 import sys
 from multiprocessing import Process
@@ -22,6 +23,66 @@ from Ingram.utils import common
 from Ingram.utils import get_parse
 from Ingram.utils import log
 from Ingram.utils import logo
+from Ingram.utils.timer import time_formatter
+
+
+def _check_previous_state(config):
+    """Check for a previous scan state and prompt the user to resume or start fresh.
+    Returns True if user wants to start fresh (clear state), False to resume."""
+    taskid = hashlib.md5((config.in_file + config.out_dir).encode('utf-8')).hexdigest()
+    state_file = os.path.join(config.out_dir, f".{taskid}")
+
+    if not os.path.exists(state_file):
+        return False  # no previous state, nothing to clear
+
+    try:
+        with open(state_file, 'r') as f:
+            line = f.readline().strip()
+            if not line:
+                return False
+            _done, _found, _runned_time = line.split(',')
+            prev_done = int(_done)
+            prev_found = int(_found)
+            prev_time = float(_runned_time)
+    except Exception:
+        return False
+
+    if prev_done <= 0:
+        return False
+
+    # Show previous scan state
+    print(color.cyan('=' * 60))
+    print(color.yellow('  PREVIOUS SCAN DETECTED', 'bright'))
+    print(color.cyan('=' * 60))
+    print(f"  {color.green('Targets scanned:')}  {color.white(str(prev_done), 'bright')}")
+    print(f"  {color.green('Vulns found:')}      {color.red(str(prev_found), 'bright')}")
+    print(f"  {color.green('Time elapsed:')}     {color.white(time_formatter(prev_time), 'bright')}")
+    print(f"  {color.green('Output dir:')}       {color.white(config.out_dir, 'bright')}")
+    print(color.cyan('=' * 60))
+
+    while True:
+        print(f"  {color.yellow('[R]', 'bright')} Resume (from target {color.white(str(prev_done), 'bright')})  {color.yellow('[F]', 'bright')} Start fresh")
+        try:
+            choice = input(f"  {color.green('>', 'bright')} Choose [R/F]: ").strip().upper()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            sys.exit()
+
+        if choice in ('R', ''):
+            print(f"  {color.green('Resuming', 'bright')} from target {color.white(str(prev_done), 'bright')}...")
+            return False  # don't clear, resume
+        elif choice == 'F':
+            # Clear state
+            os.remove(state_file)
+            vuln_file = os.path.join(config.out_dir, config.vulnerable)
+            not_vuln_file = os.path.join(config.out_dir, config.not_vulnerable)
+            for f in [vuln_file, not_vuln_file]:
+                if os.path.exists(f):
+                    open(f, 'w').close()
+            print(f"  {color.yellow('Cleared.', 'bright')} Starting fresh...")
+            return True  # cleared
+        else:
+            print(f"  {color.red('Invalid choice. Enter R or F.')}")
 
 
 def run():
@@ -63,13 +124,15 @@ def run():
         # Log configuration
         log.config_logger(os.path.join(config.out_dir, config.log), config.debug)
 
+        # Check for previous scan state and prompt user
+        _check_previous_state(config)
+
         # Print scan config summary
-        print(f"\n{color.green('Scan speed:')} {color.yellow(config.scan_speed)}"
+        print(f"{color.green('Scan speed:')} {color.yellow(config.scan_speed)}"
               f"  {color.green('Threads:')} {color.yellow(str(config.th_num))}"
               f"  {color.green('Randomize:')} {color.yellow(str(config.randomize))}")
         if config.proxy_rotator.enabled:
             print(f"{color.green('Proxies:')} {color.yellow(str(len(config.proxy_rotator.proxies)))}")
-        print()
 
         # Launch scanning process
         p = Process(target=Core(config).run)

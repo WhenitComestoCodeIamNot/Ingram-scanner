@@ -4,6 +4,115 @@ A fast, modular vulnerability scanning framework for network cameras (IP cameras
 
 > Private fork of [jorhelp/Ingram](https://github.com/jorhelp/Ingram) with significant enhancements.
 
+---
+
+## What's Changed From the Original
+
+This is a private fork of [jorhelp/Ingram](https://github.com/jorhelp/Ingram). Below is a side-by-side comparison of what the original had versus what this version adds or changes.
+
+### Console Interface
+
+| | Original | This Fork |
+|---|----------|-----------|
+| **Status display** | Single-line text with a spinning icon: `[⣾] 50/1000(5.0%) Found 2 Time: 1m 0s/20m 0s` | Multi-line boxed dashboard with box-drawing borders, updates every 0.2s |
+| **Progress** | Percentage number only | Visual progress bar with color gradient (red → yellow → green) + percentage |
+| **Scan rate** | Not shown | Live targets/sec calculated from rolling sample window |
+| **Time estimates** | Linear extrapolation from done/total | ETA based on actual measured throughput |
+| **Per-target timing** | Not tracked | Shows current IP scan time, average per target, and last target time |
+| **Vulnerability feed** | Not shown during scan; only final report | Real-time RECENT FINDINGS feed — last 3 discoveries shown live with IP, port, device, creds, POC name |
+| **Device breakdown** | Only in final report | Live mini bar chart during scan showing vulnerability count per device brand |
+| **Clickable targets** | No | Vulnerable IPs are OSC 8 terminal hyperlinks — Ctrl+Click to open in browser (Windows Terminal, VS Code) |
+| **Current target** | Not shown | Shows which IP is actively being scanned |
+| **Resume handling** | Silent — just resumes if state file exists, no indication | Interactive prompt: shows previous progress (targets done, vulns found, time elapsed), asks `[R] Resume / [F] Start Fresh`. Dashboard shows `[RESUMED]` tag |
+| **Final report** | Plain text with basic bar chart | Boxed report matching dashboard style with per-device breakdown bars |
+| **Language** | Chinese README and comments | English README and all user-facing text |
+
+### Anti-Detection & Evasion
+
+The original had **no evasion capabilities** — it scanned sequentially at full speed with a single static User-Agent, making it trivially detectable and blockable.
+
+| Feature | Original | This Fork |
+|---------|----------|-----------|
+| **Scan speed control** | None — always max speed | Three profiles via `-S`: `stealth` (1-3s delay, 20 threads), `normal` (no delay, 150 threads), `aggressive` (no delay, 300 threads) |
+| **User-Agent** | One static UA for the entire scan | Randomized per request from a pool of real browser UAs |
+| **HTTP headers** | Static defaults | Randomized Accept-Language, DNT, Sec-Fetch-*, Connection headers per request |
+| **Request rate** | No throttling | Configurable per-target rate limiting with jitter (`--delay`) |
+| **Target order** | Sequential (scans IPs in file order) | Shuffled in chunks of 10,000 to avoid sequential detection (`--randomize`, on by default) |
+| **Proxy support** | None | HTTP/SOCKS4/SOCKS5 via `--proxy`, or rotating proxy list via `--proxy-file` |
+| **Retry logic** | No retries on failure | Exponential backoff with configurable retry count (`--retries`, default: 2) |
+
+### Device & Vulnerability Coverage
+
+The original supported **17 device brands** with **26 POCs** and CVEs from 2017-2021.
+
+This fork adds **6 new device brands** and **4 new CVE exploits**, bringing totals to **23 brands** and **36+ POCs** with CVEs through 2023.
+
+**New device brands added:**
+
+| Brand | Original | This Fork |
+|-------|----------|-----------|
+| Reolink | Not supported | Fingerprint rules + JSON API weak password POC |
+| Amcrest | Not supported | Fingerprint rules + HTTP Digest weak password + unauthenticated info disclosure POC |
+| Lorex | Not supported | Fingerprint rules + RPC2_Login weak password POC |
+| Honeywell | Not supported | Fingerprint rules + ISAPI weak password POC |
+| Foscam | Not supported | Fingerprint rules + CGIProxy weak password POC |
+| TP-Link | Not supported | Fingerprint rules added |
+
+**New CVE exploits added:**
+
+| CVE | Target | CVSS | Original | This Fork |
+|-----|--------|------|----------|-----------|
+| CVE-2022-30563 | Dahua | 7.4 | Not covered | ONVIF authentication bypass via WS-UsernameToken replay |
+| CVE-2023-6895 | Hikvision/DVR | 9.8 | Not covered | Command injection via `restore` endpoint |
+| CVE-2023-28808 | Hikvision | 9.1 | Not covered | Access control authentication bypass |
+| Amcrest Disclosure | Amcrest | Medium | Not covered | Unauthenticated config leak via `/web_caps/webCapsConfig` |
+
+**Credential & port expansion:**
+
+| | Original | This Fork |
+|---|----------|-----------|
+| **Passwords** | 6 generic (`admin`, `12345`, etc.) | 19 total — added brand-specific: `888888`, `666666`, `000000`, blank password, `supervisor`, `admin123`, `default`, `pass` |
+| **Ports scanned** | ~15 HTTP ports | 29 ports — added HTTPS (443, 8443), RTSP (554, 8554), device-specific (34567, 37777, 49152, 55555, 8888) |
+| **Comment support** | No | Lines starting with `#` are ignored in target files and `rules.csv` |
+
+### RTSP Stream Detection
+
+The original had **no RTSP support** — it only tested HTTP-based vulnerabilities.
+
+This fork adds:
+- RTSP probing on ports 554 and 8554
+- Default credential testing against RTSP endpoints
+- Brand-specific RTSP path detection (Hikvision `/Streaming/Channels/101`, Dahua `/cam/realmonitor`, Reolink, Foscam, etc.)
+- Disable with `--disable-rtsp`
+
+### Output & Reporting
+
+| | Original | This Fork |
+|---|----------|-----------|
+| **CSV** | `results.csv` with vulnerability results | Same, unchanged |
+| **JSON** | Not available | `results.json` with structured scan metadata (`--output-format json`) |
+| **HTML** | Not available | Dark-themed `report.html` with stat cards, severity badges, sortable tables (`--output-format html`) |
+| **Format selection** | CSV only | `--output-format`: `csv`, `json`, `html`, or `all` |
+
+### Target Discovery
+
+The original required you to **manually create target files**. This fork adds:
+- **Shodan integration** — pull camera IPs directly via `--shodan-key` and `--shodan-query`
+- **Censys integration** — pull targets via `--censys-id`, `--censys-secret`, and `--censys-query`
+- API results are automatically appended to the input target file
+
+### Platform & Compatibility
+
+| | Original | This Fork |
+|---|----------|-----------|
+| **Windows** | Partial — some features broken | Fully supported — colorama wrapping, UTF-8 stdout, VT100 escape activation |
+| **Python 3.11+** | Broken (pwntools dependency) | Compatible — pwntools made optional |
+| **README language** | Chinese | English |
+
+See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+
+---
+
 ## Supported Devices
 
 | Brand | POC Types |
