@@ -15,6 +15,7 @@ from .utils import port_scan
 from .utils import status_bar
 from .utils import timer
 from .utils.evasion import get_random_headers
+from .utils.report import generate_json_report, generate_html_report
 from .utils.rtsp_probe import rtsp_probe, rtsp_try_creds, RTSP_PORTS
 
 
@@ -138,6 +139,16 @@ class Core:
             self.status_bar_thread.join()
 
             self.report()
+
+            # Generate additional output formats
+            output_format = getattr(self.config, 'output_format', 'csv')
+            results_file = os.path.join(self.config.out_dir, self.config.vulnerable)
+            not_vuln_file = os.path.join(self.config.out_dir, self.config.not_vulnerable)
+
+            if output_format in ('json', 'all'):
+                generate_json_report(results_file, self.config.out_dir)
+            if output_format in ('html', 'all'):
+                generate_html_report(results_file, not_vuln_file, self.config.out_dir)
 
         except KeyboardInterrupt:
             pass
