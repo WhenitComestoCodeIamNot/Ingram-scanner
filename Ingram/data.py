@@ -1,6 +1,7 @@
-"""数据流"""
+"""Data flow management"""
 import hashlib
 import os
+import random
 import time
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
@@ -54,7 +55,9 @@ class Data:
                     self.add_total(net.get_ip_seg_len(strip_line))
 
     def _generate_ip(self):
+        """Generate IPs with optional randomization to avoid sequential scanning"""
         current, remain = 0, []
+        should_randomize = getattr(self.config, 'randomize', False)
         with open(self.config.in_file, 'r') as f:
             if self.done:
                 for line in f:
@@ -71,10 +74,28 @@ class Data:
                 for ip in remain:
                     yield ip
 
-            for line in f:
-                if (strip_line := line.strip()) and not line.startswith('#'):
-                    for ip in net.get_all_ip(strip_line):
-                        yield ip
+            if should_randomize:
+                # Buffer and shuffle IPs in chunks to avoid sequential scanning patterns
+                CHUNK_SIZE = 10000
+                chunk = []
+                for line in f:
+                    if (strip_line := line.strip()) and not line.startswith('#'):
+                        for ip in net.get_all_ip(strip_line):
+                            chunk.append(ip)
+                            if len(chunk) >= CHUNK_SIZE:
+                                random.shuffle(chunk)
+                                for ip_item in chunk:
+                                    yield ip_item
+                                chunk = []
+                if chunk:
+                    random.shuffle(chunk)
+                    for ip_item in chunk:
+                        yield ip_item
+            else:
+                for line in f:
+                    if (strip_line := line.strip()) and not line.startswith('#'):
+                        for ip in net.get_all_ip(strip_line):
+                            yield ip
 
     def preprocess(self):
         """预处理"""

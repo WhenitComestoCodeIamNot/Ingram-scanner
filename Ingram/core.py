@@ -14,6 +14,7 @@ from .utils import fingerprint
 from .utils import port_scan
 from .utils import status_bar
 from .utils import timer
+from .utils.evasion import get_random_headers
 
 
 @common.singleton
@@ -42,7 +43,7 @@ class Core:
                     results[dev][vul] += 1
                 results_sum = len(items)
                 results_max = max([val for vul in results.values() for val in vul.values()])
-                
+
                 print('\n')
                 print('-' * 19, 'REPORT', '-' * 19)
                 for dev in results:
@@ -59,29 +60,30 @@ class Core:
     def _scan(self, target):
         """
         params:
-        - target: 有两种形式, 即 ip 或 ip:port
+        - target: ip or ip:port
         """
         items = target.split(':')
         ip = items[0]
         ports = [items[1], ] if len(items) > 1 else self.config.ports
 
-        # 存活检测 (是否有必要)
+        # Rate limiting per target
+        self.config.rate_limiter.wait(ip)
 
-        # 端口扫描
+        # Port scanning
         for port in ports:
             if port_scan(ip, port, self.config.timeout):
                 logger.info(f"{ip} port {port} is open")
-                # 指纹
+                # Fingerprint
                 if product := fingerprint(ip, port, self.config):
                     logger.info(f"{ip}:{port} is {product}")
                     verified = False
                     # poc verify & exploit
                     for poc in self.poc_dict[product]:
+                        # Rate limit between POC attempts
+                        self.config.rate_limiter.wait(ip)
                         if results := poc.verify(ip, port):
                             verified = True
-                            # found 加 1
                             self.data.add_found()
-                            # 将验证成功的 poc 记录到 config.vulnerable 中
                             self.data.add_vulnerable(results[:6])
                             # snapshot
                             if not self.config.disable_snapshot:
@@ -94,24 +96,25 @@ class Core:
     def run(self):
         logger.info(f"running at {timer.get_time_formatted()}")
         logger.info(f"config is {self.config}")
+        logger.info(f"scan speed: {self.config.scan_speed}, threads: {self.config.th_num}, randomize: {self.config.randomize}")
+
+        if self.config.proxy_rotator.enabled:
+            logger.info(f"proxy rotation enabled with {len(self.config.proxy_rotator.proxies)} proxies")
 
         try:
-            # 状态栏
+            # Status bar
             self.status_bar_thread = Thread(target=status_bar, args=[self, ], daemon=True)
             self.status_bar_thread.start()
-            # snapshot
+            # Snapshot pipeline
             if not self.config.disable_snapshot:
                 self.snapshot_pipeline_thread = Thread(target=self.snapshot_pipeline.process, args=[self, ], daemon=True)
                 self.snapshot_pipeline_thread.start()
-            # 扫描
-            # with common.IngramThreadPool(self.config.th_num) as pool:
-            #     pool.map(self._scan, self.data.ip_generator)
+            # Scanning
             scan_pool = geventPool(self.config.th_num)
             for ip in self.data.ip_generator:
                 scan_pool.start(gevent.spawn(self._scan, ip))
             scan_pool.join()
 
-            # self.snapshot_pipeline_thread.join()
             self.status_bar_thread.join()
 
             self.report()
