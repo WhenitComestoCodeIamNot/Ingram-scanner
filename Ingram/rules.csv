@@ -39,3 +39,22 @@ uniview,/favicon.ico,md5=`1536f25632f78fb03babedcb156d3f69`
 uniview,/skin/default_1/images/logo.png,md5=`c30a692ad0d1324389485de06c96d9b8`
 xiongmai,/,title=`NETSurveillance WEB`
 xiongmai,/,title=`NetSurveillance WEB`
+# Reolink
+reolink,/,title=`Reolink`
+reolink,/,body=`reolink`&&body=`login`
+# Amcrest
+amcrest,/,title=`Amcrest`
+amcrest,/,body=`amcrest`&&body=`login`
+amcrest,/,headers=`Amcrest`
+# TP-Link
+tplink,/,title=`TP-LINK`
+tplink,/,body=`tplinkcloud`
+# Lorex
+lorex,/,title=`Lorex`
+lorex,/,body=`lorex`&&body=`login`
+# Honeywell
+honeywell,/,title=`Honeywell`
+honeywell,/,body=`honeywell`&&body=`login`
+# Foscam
+foscam,/,title=`IPCam Client`
+foscam,/,body=`foscam`&&body=`login`

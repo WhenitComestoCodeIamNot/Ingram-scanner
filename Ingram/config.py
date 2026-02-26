@@ -7,10 +7,35 @@ from .utils.evasion import RateLimiter, ProxyRotator, SCAN_PROFILES
 
 
 _config = {
-    'users': ['admin'],
-    'passwords': ['admin', 'admin12345', 'asdf1234', 'abc12345', '12345admin', '12345abc'],
+    'users': ['admin', 'root', 'default'],
+    'passwords': [
+        # Generic defaults
+        'admin', 'admin12345', 'asdf1234', 'abc12345', '12345admin', '12345abc',
+        'password', '123456', '12345', '1234',
+        # Amcrest / Dahua
+        '888888', '666666',
+        # Lorex
+        '000000',
+        # Common DVR/NVR
+        'admin123', 'pass', 'default', 'supervisor',
+        # Reolink (blank password)
+        '',
+    ],
     'user_agent': net.get_user_agent(),  # fallback UA; per-request rotation used when evasion active
-    'ports': [80, 81, 82, 83, 84, 85, 88, 8000, 8001, 8080, 8081, 8085, 8086, 8088, 8090, 8181, 2051, 9000, 37777, 49152, 55555],
+    'ports': [
+        # Standard HTTP
+        80, 81, 82, 83, 84, 85, 88,
+        # Common camera web UI
+        8000, 8001, 8080, 8081, 8085, 8086, 8088, 8090, 8181,
+        # HTTPS
+        443, 8443,
+        # RTSP
+        554, 8554,
+        # Other common camera ports
+        2051, 8888, 9000, 9080,
+        # Device-specific
+        7001, 34567, 37777, 49152, 55555,
+    ],
 
     # rules
     'product': {},
@@ -51,8 +76,8 @@ def get_config(args=None):
     # Fingerprint rules
     Rule = namedtuple('Rule', ['product', 'path', 'val'])
     with open(os.path.join(os.path.dirname(__file__), 'rules.csv'), 'r') as f:
-        for line in [l.strip() for l in f if l.strip()]:
-            product, path, val = line.split(',')
+        for line in [l.strip() for l in f if l.strip() and not l.strip().startswith('#')]:
+            product, path, val = line.split(',', 2)
             _config['rules'].add(Rule(product, path, val))
             _config['product'][product] = product
 
