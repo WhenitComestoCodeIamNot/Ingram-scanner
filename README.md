@@ -1,179 +1,216 @@
-<div align=center>
-    <img alt="Ingram" src="https://github.com/jorhelp/imgs/blob/master/Ingram/logo.png">
-</div>
+# Ingram - Network Camera Vulnerability Scanner
 
+A fast, modular vulnerability scanning framework for network cameras (IP cameras, NVRs, DVRs). Supports 20+ device brands with 30+ exploits including CVE-based attacks, weak credential testing, authentication bypass, and RTSP stream detection.
 
-<!-- icons -->
-<div align=center>
-    <img alt="Platform" src="https://img.shields.io/badge/platform-Linux%20|%20Mac-blue.svg">
-    <img alt="Python Version" src="https://img.shields.io/badge/python-3.8-yellow.svg">
-    <img alt="GitHub" src="https://img.shields.io/github/license/jorhelp/Ingram">
-    <img alt="Github Checks" src="https://img.shields.io/github/checks-status/jorhelp/Ingram/master">
-    <img alt="GitHub Last Commit (master)" src="https://img.shields.io/github/last-commit/jorhelp/Ingram/master">
-    <img alt="Languages Count" src="https://img.shields.io/github/languages/count/jorhelp/Ingram?style=social">
-</div>
+> Private fork of [jorhelp/Ingram](https://github.com/jorhelp/Ingram) with significant enhancements.
 
-简体中文 | [English](https://github.com/jorhelp/Ingram/blob/master/README.en.md)
+## Supported Devices
 
-## 简介
+| Brand | POC Types |
+|-------|-----------|
+| **Hikvision** | Weak password, CVE-2017-7921, CVE-2021-36260, CVE-2023-6895, CVE-2023-28808 |
+| **Dahua** | Weak password, CVE-2021-33044, CVE-2021-33045, CVE-2022-30563, Disabled auth |
+| **Uniview** | Credential disclosure, CVE-2021-36260 variant |
+| **Xiongmai** | Weak password, ONVIF bypass |
+| **Reolink** | Weak password |
+| **Amcrest** | Weak password, Info disclosure |
+| **Lorex** | Weak password |
+| **Honeywell** | Weak password |
+| **Foscam** | Weak password |
+| **D-Link DCS** | CVE-2020-25078 |
+| **Avtech** | Weak password |
+| **Axis** | Weak password |
+| **GeoVision** | Weak password |
+| **Instar** | Weak password |
+| **Netwave** | Weak password |
+| **Nuuo** | Weak password |
+| **ReeCam** | Weak password |
+| **Tenda** | CVE-2018-17240 |
+| **Generic DVR** | Weak password, CVE-2018-9995 |
+| **Generic RTSP** | Default credential testing |
 
-主要针对网络摄像头的漏洞扫描框架，目前已集成海康、大华、宇视、dlink等常见设备
+## Features
 
-<div align=center>
-    <img alt="run" src="https://github.com/jorhelp/imgs/blob/master/Ingram/run_time.gif">
-</div>
+- **30+ vulnerability POCs** including CVEs from 2017-2023
+- **Anti-detection system** — rate limiting, proxy rotation, User-Agent rotation, target randomization, stealth scanning mode
+- **RTSP stream detection** — probe port 554/8554 for accessible camera streams
+- **Multiple output formats** — CSV, JSON, and HTML reports
+- **High concurrency** — gevent-based async scanning with configurable worker count
+- **Resume capability** — interrupted scans can be continued from where they left off
+- **Snapshot capture** — automatically captures images from vulnerable cameras
+- **Proxy support** — HTTP/SOCKS4/SOCKS5 proxy and proxy list rotation
+- **Shodan/Censys integration** — pull targets from internet search engines
 
+## Installation
 
-## 安装
+**Requirements:** Python >= 3.8 (3.11+ supported). Works on Linux, Mac, and Windows.
 
-**请在 Linux 或 Mac 系统使用，确保安装了3.8及以上版本的Python，尽量不要使用3.11，因为对许多包的兼容不是很好**
-
-+ 克隆该仓库:
 ```bash
-git clone https://github.com/jorhelp/Ingram.git
-```
+# Clone the repository
+git clone https://github.com/WhenitComestoCodeIamNot/Ingram-scanner.git
+cd Ingram-scanner
 
-+ 进入项目目录，创建一个虚拟环境，并激活该环境：
-```bash
-cd Ingram
-pip3 install virtualenv
-python3 -m virtualenv venv
+# Create and activate virtual environment
+python -m venv venv
+# Linux/Mac:
 source venv/bin/activate
+# Windows:
+venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-+ 安装依赖:
-```bash
-pip3 install -r requirements.txt
+## Usage
+
+### Basic Scan
+
+Prepare a target file (e.g., `targets.txt`) with IPs, one per line:
+
 ```
+# Comments start with #
 
-至此安装完毕！
-
-
-## 运行
-
-+ 由于是在虚拟环境中配置，所以，每次运行之前，请先激活虚拟环境：`source venv/bin/activate`
-
-+ 你需要准备一个目标文件，比如 targets.txt，里面保存着你要扫描的 IP 地址，每行一个目标，具体格式如下：
-```
-# 你可以使用井号(#)来进行注释
-
-# 单个的 IP 地址
+# Single IP
 192.168.0.1
 
-# IP 地址以及要扫描的端口
+# IP with specific port
 192.168.0.2:80
 
-# 带 '/' 的IP段
-192.168.0.0/16
+# CIDR notation
+192.168.0.0/24
 
-# 带 '-' 的IP段
-192.168.0.0-192.168.255.255
+# IP range
+192.168.0.0-192.168.0.255
 ```
 
-+ 有了目标文件之后就可直接运行:
-```bash
-python3 run_ingram.py -i 你要扫描的文件 -o 输出文件夹
-```
-
-+ 端口：
-如果target.txt文件中指定了目标的端口，比如: 192.168.6.6:8000，那么会扫描该目标的8000端口 
-
-否则的话，默认只扫描常见端口(定义在 `Ingram/config.py` 中)，若要批量扫描其他端口，需自行指定，例如：
-```bash
-python3 run_ingram.py -i 你要扫描的文件 -o 输出文件夹 -p 80 81 8000
-```
-
-+ 默认并发数目为 300，可以根据机器配置及网速通过 `-t` 参数来自行调控：
-```bash
-python3 run_ingram.py -i 你要扫描的文件 -o 输出文件夹 -t 500
-```
-
-+ 支持中断恢复，不过并不会实时记录当前运行状态，而是间隔一定时间，所以并不能准确恢复到上次的运行状态。如果扫描因为网络或异常而中断，可以通过重复执行上次的扫描命令来继续扫描
-
-+ 所有参数：
-```
-optional arguments:
-  -h, --help            show this help message and exit
-  -i IN_FILE, --in_file IN_FILE
-                        the targets will be scan
-  -o OUT_DIR, --out_dir OUT_DIR
-                        the dir where results will be saved
-  -p PORTS [PORTS ...], --ports PORTS [PORTS ...]
-                        the port(s) to detect
-  -t TH_NUM, --th_num TH_NUM
-                        the processes num
-  -T TIMEOUT, --timeout TIMEOUT
-                        requests timeout
-  -D, --disable_snapshot
-                        disable snapshot
-  --debug
-```
-
-
-## 端口扫描器
-
-+ 我们可以利用强大的端口扫描器来获取活动主机，进而缩小 Ingram 的扫描范围，提高运行速度，具体做法是将端口扫描器的结果文件整理成 `ip:port` 的格式，并作为 Ingram 的输入
-
-+ 这里以 masscan 为例简单演示一下（masscan 的详细用法这里不再赘述），首先用 masscan 扫描 80 或 8000-8008 端口存活的主机：`masscan -p80,8000-8008 -iL 目标文件 -oL 结果文件 --rate 8000`
-
-+ masscan 运行完之后，将结果文件整理一下：`grep 'open' 结果文件 | awk '{printf"%s:%s\n", $4, $3}' > targets.txt`
-
-+ 之后对这些主机进行扫描：`python run_ingram.py -i targets.txt -o out`
-
-
-## ~~微信提醒~~(已移除)
-
-+ (**可选**) 扫描时间可能会很长，如果你想让程序扫描结束的时候通过微信发送一条提醒的话，你需要按照 [wxpusher](https://wxpusher.zjiecode.com/docs/) 的指示来获取你的专属 *UID* 和 *APP_TOKEN*，并将其写入 `run_ingram.py`:
-```python
-# wechat
-config.set_val('WXUID', '这里写uid')
-config.set_val('WXTOKEN', '这里写token')
-```
-
-
-## 结果
+Run the scanner:
 
 ```bash
-.
-├── not_vulnerable.csv
-├── results.csv
-├── snapshots
-└── log.txt
+python run_ingram.py -i targets.txt -o output_dir
 ```
 
-+ `results.csv` 里保存了完整的结果, 格式为: `ip,端口,设备类型,用户名,密码,漏洞条目`:  
+### Scan Speed Profiles
 
-<div align=center>
-    <img alt="Ingram" src="https://github.com/jorhelp/imgs/blob/master/Ingram/results.png">
-</div>
+```bash
+# Stealth mode — slow, randomized, hard to detect
+python run_ingram.py -i targets.txt -o output -S stealth
 
-+ `not_vulnerable.csv` 中保存的是没有暴露的设备
+# Normal mode (default) — balanced speed and stealth
+python run_ingram.py -i targets.txt -o output -S normal
 
-+ `snapshots` 中保存了部分设备的快照:  
+# Aggressive mode — maximum speed, no delays
+python run_ingram.py -i targets.txt -o output -S aggressive
+```
 
-<div align=center>
-    <img alt="Ingram" src="https://github.com/jorhelp/imgs/blob/master/Ingram/snapshots.png">
-</div>
+### Using Proxies
 
+```bash
+# Single proxy
+python run_ingram.py -i targets.txt -o output --proxy socks5://127.0.0.1:1080
 
-## ~~实时预览~~ (由于部分原因已移除)
+# Rotating proxy list
+python run_ingram.py -i targets.txt -o output --proxy-file proxies.txt
+```
 
-+ ~~可以直接通过浏览器登录来预览~~
-  
-+ ~~如果想批量查看，我们提供了一个脚本 `show/show_rtsp/show_all.py`，不过它还有一些问题:~~
+### Custom Ports and Threads
 
-<div align=center>
-    <img alt="Ingram" src="https://github.com/jorhelp/imgs/blob/master/Ingram/show_rtsp.png">
-</div>
+```bash
+# Scan specific ports
+python run_ingram.py -i targets.txt -o output -p 80 8080 8000
 
+# Adjust concurrency (default: 150)
+python run_ingram.py -i targets.txt -o output -t 500
+```
 
-## 免责声明
+### Output Formats
 
-本工具仅供安全测试，严禁用于非法用途，后果与本团队无关
+```bash
+# JSON output
+python run_ingram.py -i targets.txt -o output --output-format json
 
+# HTML report
+python run_ingram.py -i targets.txt -o output --output-format html
 
-## 鸣谢 & 引用
+# All formats
+python run_ingram.py -i targets.txt -o output --output-format all
+```
 
-Thanks to [Aiminsun](https://github.com/Aiminsun/CVE-2021-36260) for CVE-2021-36260  
-Thanks to [chrisjd20](https://github.com/chrisjd20/hikvision_CVE-2017-7921_auth_bypass_config_decryptor) for hidvision config file decryptor  
-Thanks to [mcw0](https://github.com/mcw0/DahuaConsole) for DahuaConsole
+### All Arguments
+
+```
+required arguments:
+  -i, --in_file           Target file (IPs/ranges, one per line)
+  -o, --out_dir           Output directory for results
+
+scanning options:
+  -p, --ports             Port(s) to scan (default: common camera ports)
+  -t, --th_num            Worker/coroutine count (default: 150)
+  -T, --timeout           Request timeout in seconds (default: 3)
+  --retries               Max retries per request (default: 2)
+
+evasion options:
+  -S, --scan-speed        Scan profile: stealth, normal, aggressive (default: normal)
+  --proxy                 Proxy URL (http/socks4/socks5)
+  --proxy-file            File with proxy list (one per line, rotated)
+  --delay                 Min delay between requests per target (seconds)
+  --randomize             Shuffle target order (default: on)
+  --no-randomize          Scan targets in sequential order
+
+output options:
+  --output-format         Output format: csv, json, html, all (default: csv)
+  -D, --disable_snapshot  Skip snapshot capture
+  --disable-rtsp          Skip RTSP stream detection
+
+target sources:
+  --shodan-key            Shodan API key
+  --shodan-query          Shodan search query
+  --censys-id             Censys API ID
+  --censys-secret         Censys API secret
+  --censys-query          Censys search query
+
+other:
+  --debug                 Enable debug logging
+  -h, --help              Show help message
+```
+
+## Output Structure
+
+```
+output_dir/
+├── results.csv           # Vulnerable devices: ip,port,device,user,password,vulnerability
+├── results.json          # JSON format results (if --output-format json/all)
+├── report.html           # HTML report with tables and stats (if --output-format html/all)
+├── not_vulnerable.csv    # Detected but non-vulnerable devices
+├── snapshots/            # Captured camera images
+└── log.txt               # Detailed scan log
+```
+
+## Using with Port Scanners
+
+For faster scanning, pre-filter targets using a port scanner like masscan:
+
+```bash
+# Scan for open camera ports
+masscan -p80,8000-8008,554 -iL targets.txt -oL masscan_results.txt --rate 8000
+
+# Format results for Ingram
+grep 'open' masscan_results.txt | awk '{printf"%s:%s\n", $4, $3}' > filtered_targets.txt
+
+# Scan only active hosts
+python run_ingram.py -i filtered_targets.txt -o output
+```
+
+## Disclaimer
+
+This tool is intended for **authorized security testing only**. You must have explicit permission to scan any network or device. Unauthorized scanning is illegal. The authors are not responsible for misuse.
+
+## Credits
+
+- Original project: [jorhelp/Ingram](https://github.com/jorhelp/Ingram)
+- [Aiminsun](https://github.com/Aiminsun/CVE-2021-36260) — CVE-2021-36260
+- [chrisjd20](https://github.com/chrisjd20/hikvision_CVE-2017-7921_auth_bypass_config_decryptor) — Hikvision config decryptor
+- [mcw0](https://github.com/mcw0/DahuaConsole) — DahuaConsole
+
+## License
+
+Apache 2.0 — See [LICENSE](LICENSE)
