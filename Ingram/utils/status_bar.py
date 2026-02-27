@@ -1,4 +1,4 @@
-"""Enhanced console dashboard for Ingram scanner"""
+"""Enhanced console dashboard for WRAITH scanner"""
 import io
 import os
 import random
@@ -178,14 +178,14 @@ def _dashboard():
         # Top border
         lines.append(color.cyan(f"{BOX_TL}{BOX_H * (tw - 2)}{BOX_TR}", 'dim'))
 
-        # Header: INGRAM SCANNER + status + resume indicator
+        # Header: WRAITH SCANNER + status + resume indicator
         status_text = "SCANNING" if done < total else "COMPLETE"
         if done < total:
             status_colored = color.yellow(f"[{status_text}]", 'bright')
         else:
             status_colored = color.green(f"[{status_text}]", 'bright')
         resume_tag = f"  {color.magenta('[RESUMED]', 'bright')}" if data.is_resumed else ""
-        header_line = f"  {color.green(spin, 'bright')} INGRAM SCANNER  {status_colored}{resume_tag}"
+        header_line = f"  {color.green(spin, 'bright')} WRAITH SCANNER  {status_colored}{resume_tag}"
         lines.append(color.cyan(BOX_V, 'dim') + _pad_line(header_line, tw - 2) + color.cyan(BOX_V, 'dim'))
 
         # Separator
@@ -334,9 +334,15 @@ def status_bar(core):
 
     render = _dashboard()
 
-    while not core.finish():
-        render(core)
-        time.sleep(0.2)
+    try:
+        while not core.finish():
+            try:
+                render(core)
+            except Exception:
+                pass
+            time.sleep(0.2)
 
-    # Final draw
-    render(core)
+        # Final draw
+        render(core)
+    except Exception:
+        pass

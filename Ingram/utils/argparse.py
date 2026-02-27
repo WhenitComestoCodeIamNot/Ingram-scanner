@@ -3,7 +3,7 @@ import argparse
 
 
 def get_parse():
-    parser = argparse.ArgumentParser(description='Ingram - Network Camera Vulnerability Scanner')
+    parser = argparse.ArgumentParser(description='WRAITH - Network Camera Vulnerability Scanner')
 
     # Required arguments
     parser.add_argument('-i', '--in_file', type=str, required=True, help='target file with IPs/ranges (one per line)')

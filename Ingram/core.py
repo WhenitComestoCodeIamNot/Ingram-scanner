@@ -1,6 +1,7 @@
 import os
+import sys
 from collections import defaultdict
-from threading import Thread
+from threading import Thread, Event
 
 import gevent
 from loguru import logger
@@ -29,8 +30,12 @@ class Core:
         self.poc_dict = get_poc_dict(self.config)
         # Get the RTSP POC if available
         self.rtsp_poc = self.poc_dict.get('__rtsp__', [])
+        # Shutdown event — set on Ctrl+C to stop all loops
+        self.shutdown_event = Event()
 
     def finish(self):
+        if self.shutdown_event.is_set():
+            return True
         return (self.data.done >= self.data.total) and (self.snapshot_pipeline.task_count <= 0)
 
     def report(self):
@@ -102,6 +107,9 @@ class Core:
         params:
         - target: ip or ip:port
         """
+        if self.shutdown_event.is_set():
+            return
+
         import time as _time
         items = target.split(':')
         ip = items[0]
@@ -178,6 +186,7 @@ class Core:
         if self.config.proxy_rotator.enabled:
             logger.info(f"proxy rotation enabled with {len(self.config.proxy_rotator.proxies)} proxies")
 
+        scan_pool = None
         try:
             # Status bar
             self.status_bar_thread = Thread(target=status_bar, args=[self, ], daemon=True)
@@ -189,10 +198,12 @@ class Core:
             # Scanning
             scan_pool = geventPool(self.config.th_num)
             for ip in self.data.ip_generator:
+                if self.shutdown_event.is_set():
+                    break
                 scan_pool.start(gevent.spawn(self._scan, ip))
             scan_pool.join()
 
-            self.status_bar_thread.join()
+            self.status_bar_thread.join(timeout=2)
 
             self.report()
 
@@ -207,7 +218,13 @@ class Core:
                 generate_html_report(results_file, not_vuln_file, self.config.out_dir)
 
         except KeyboardInterrupt:
-            pass
+            self.shutdown_event.set()
+            logger.warning("Ctrl+C received — stopping scan")
+            # Kill all pending greenlets
+            if scan_pool is not None:
+                scan_pool.kill()
+            # Save progress so scan can be resumed
+            self.data.record_running_state()
 
         except Exception as e:
             logger.error(e)

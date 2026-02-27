@@ -1,8 +1,8 @@
-# Ingram - Network Camera Vulnerability Scanner
+# WRAITH - Network Camera Vulnerability Scanner
 
 A fast, modular vulnerability scanning framework for network cameras (IP cameras, NVRs, DVRs). Supports 26+ device brands with 45+ exploits covering 22 CVEs (2017-2025), weak credential testing, authentication bypass, and RTSP stream detection.
 
-> Fork of [jorhelp/Ingram](https://github.com/jorhelp/Ingram) with significant enhancements.
+> Built on [jorhelp/Ingram](https://github.com/jorhelp/Ingram) with significant enhancements.
 
 ---
 
@@ -345,7 +345,7 @@ For faster scanning, pre-filter targets using a port scanner like masscan:
 # Scan for open camera ports
 masscan -p80,8000-8008,554 -iL targets.txt -oL masscan_results.txt --rate 8000
 
-# Format results for Ingram
+# Format results for WRAITH
 grep 'open' masscan_results.txt | awk '{printf"%s:%s\n", $4, $3}' > filtered_targets.txt
 
 # Scan only active hosts

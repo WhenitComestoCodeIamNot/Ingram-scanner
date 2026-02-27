@@ -2,7 +2,7 @@
 # coding  : utf-8
 # @Author : Jor<jorhelp@qq.com>
 # @Date   : Wed Apr 20 00:17:30 HKT 2022
-# @Desc   : Network camera vulnerability scanning tool
+# @Desc   : WRAITH - Network camera vulnerability scanning tool
 
 #=================== Must be at the very top ====================
 import warnings; warnings.filterwarnings("ignore")
@@ -87,6 +87,10 @@ def _check_previous_state(config):
 
 def run():
     try:
+        # Ensure UTF-8 for block-character logo art on Windows
+        from Ingram.utils.status_bar import _ensure_utf8_stdout
+        _ensure_utf8_stdout()
+
         # Logo
         for icon, font in zip(*logo):
             print(f"{color.yellow(icon, 'bright')}  {color.magenta(font, 'bright')}")
@@ -134,27 +138,38 @@ def run():
         if config.proxy_rotator.enabled:
             print(f"{color.green('Proxies:')} {color.yellow(str(len(config.proxy_rotator.proxies)))}")
 
-        # Launch scanning process
-        p = Process(target=Core(config).run)
+        # Launch scan
+        core = Core(config)
         if common.os_check() == 'windows':
-            p.run()
+            # Windows: run in-process (multiprocessing.Process.start() has
+            # permission issues with gevent's monkey-patched handles).
+            # Ctrl+C is handled inside Core.run() via shutdown_event.
+            core.run()
         else:
+            p = Process(target=core.run)
             p.start()
-            p.join()
+            # Polling join so KeyboardInterrupt is delivered promptly
+            while p.is_alive():
+                p.join(timeout=0.5)
 
     except KeyboardInterrupt:
-        logger.warning('Ctrl + c was pressed')
+        print()
+        print(f"{color.yellow('Ctrl+C pressed — shutting down...', 'bright')}")
+        logger.warning('Ctrl+C was pressed')
         try:
-            p.kill()
+            p.terminate()
+            p.join(timeout=3)
+            if p.is_alive():
+                p.kill()
         except Exception:
             pass
-        sys.exit()
+        sys.exit(130)
 
     except Exception as e:
         logger.error(e)
         print(f"{color.red('error occurred, see the')} {color.yellow('log.txt')} "
               f"{color.red('for more information.')}")
-        sys.exit()
+        sys.exit(1)
 
 
 if __name__ == '__main__':

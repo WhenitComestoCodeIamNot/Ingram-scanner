@@ -70,7 +70,7 @@ Bug fixes for zero-detection scanning issues and expanded CVE coverage through 2
 
 ## [2.0.0] - 2026-02-26
 
-Major upgrade from the original jorhelp/Ingram scanner.
+Major upgrade from the original Ingram scanner (jorhelp/Ingram). Renamed to WRAITH.
 
 ### Added
 

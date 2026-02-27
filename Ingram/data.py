@@ -5,7 +5,7 @@ import random
 import time
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
-from queue import Queue
+from queue import Queue, Empty
 from threading import Lock, RLock, Thread
 
 from loguru import logger
@@ -258,8 +258,10 @@ class SnapshotPipeline:
 
     def process(self, core):
         while not core.finish():
-            exploit_func, results = self.get()
+            try:
+                exploit_func, results = self.pipeline.get(timeout=0.5)
+            except Empty:
+                continue
             self.workers.submit(self._snapshot, exploit_func, results)
             with self.task_count_lock:
                 self.task_count += 1
-            time.sleep(.1)
