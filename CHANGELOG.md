@@ -2,6 +2,72 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-02-26
+
+Bug fixes for zero-detection scanning issues and expanded CVE coverage through 2025.
+
+### Fixed
+
+**Critical: HTTPS Fingerprinting Bug**
+- `fingerprint.py` hardcoded `http://` for all ports — cameras on HTTPS ports (443, 8443) were completely invisible
+- Added `_get_scheme(port)` to correctly use `https://` for HTTPS ports
+- Added SSL fallback: if HTTPS fails, tries HTTP (and vice versa)
+
+**Critical: Title XPath IndexError**
+- `html.xpath('//title')[0]` crashed silently when pages had no `<title>` tag
+- Added guard check before accessing index
+
+**High: Body Matching Failure on SPA Devices**
+- Original used XPath `//body` which failed on JS-rendered single-page apps
+- Changed to search `req.text.lower()` directly for reliable detection
+
+**Medium: Fingerprinting Bypassed Evasion System**
+- `fingerprint.py` used static `config.user_agent` and no proxy
+- Now uses `get_random_headers()` and `config.proxy_rotator.get_proxy()`
+
+**Medium: All 33 POCs Hardcoded `http://`**
+- Every existing POC used `f"http://{ip}:{port}..."` ignoring HTTPS ports
+- Updated all POCs to use `self._get_url()`, `self._get_headers()`, `self._get_proxies()` helpers
+
+**Minor: RTSP Port Double-Scanning**
+- Ports 554/8554 were scanned in the main HTTP loop AND the RTSP probe
+- Main loop now skips RTSP-only ports; they're handled by the dedicated RTSP prober
+
+### Added
+
+**9 New CVE Exploits**
+- CVE-2024-7029 — AVTECH command injection (CVSS 8.8, CISA KEV, 38K+ exposed devices)
+- CVE-2023-21413 — Axis OS command injection (CVSS 9.1)
+- CVE-2023-21415 — Axis VAPIX API path traversal (CVSS 6.5)
+- CVE-2023-52163 — DigiEver NVR command injection (CVSS 8.8, CISA KEV, Mirai botnet)
+- CVE-2023-30353 — Tenda CP3 unauthenticated RCE (CVSS 9.8)
+- CVE-2025-31700 — Dahua pre-auth RCE via ONVIF Host header overflow (CVSS 8.1)
+- CVE-2023-48121 — Ezviz camera authentication bypass
+- CVE-2024-52544 — Lorex stack buffer overflow (Pwn2Own 2024)
+- CVE-2021-45039 — Uniview pre-auth RCE via UDP 7788 (CVSS 8.9)
+
+**3 New Device Brands**
+- Ezviz — fingerprint rules + CVE-2023-48121 auth bypass POC
+- DigiEver — fingerprint rules + CVE-2023-52163 command injection POC
+- Hanwha Wisenet — fingerprint rules
+
+**Expanded Fingerprint Rules**
+- Added body/header-based rules for AVTECH, Axis, Dahua, D-Link, DVR, Uniview, Tenda, TP-Link VIGI, Lorex, Honeywell, Reolink, Ezviz, DigiEver, Hanwha
+
+**POC Base Class Improvements**
+- Added `_get_url(ip, port, path)` — auto-detects HTTP vs HTTPS based on port
+- Added `_get_headers()` — returns randomized headers per request
+- Added `_get_proxies()` — returns proxy dict from proxy rotator
+- Changed vulnerability level names from Chinese to English
+
+### Changed
+- Default timeout explicitly set to 3 seconds
+- Added port 3500 (Lorex DP Service) to default port list
+- Fingerprint error logging changed from `logger.error` to `logger.debug` (less noise)
+- Total CVE coverage: 22 CVEs (was 13), spanning 2017-2025
+
+---
+
 ## [2.0.0] - 2026-02-26
 
 Major upgrade from the original jorhelp/Ingram scanner.

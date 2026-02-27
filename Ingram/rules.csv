@@ -1,7 +1,12 @@
 avtech,/,title=`::: Login :::`
 avtech,/,title=`Remote Surveillance`&&title=`Any time & Any where`
 avtech,/nobody/favicon.ico,md5=`6a7e13b3f9197a383c96618fe32e345a`
+avtech,/,body=`AVTECH`
+avtech,/,headers=`AVTECH`
 axis,/favicon.ico,md5=`a3fd8705f010b90e37d42128000f620b`
+axis,/,title=`AXIS`
+axis,/,headers=`AXIS`
+axis,/,body=`axis-cgi`
 cctv,/,body=`IP Surveillance for Your Life`
 cctv,/,body=`/nobody/loginDevice.js`
 cctv,/,headers=`JAWS`
@@ -10,9 +15,13 @@ dahua,/favicon.ico,md5=`bd9e17c46bbbc18af2a2bd718dddad0e`
 dahua,/favicon.ico,md5=`605f51b413980667766a9aff2e53b9ed`
 dahua,/favicon.ico,md5=`b39f249362a2e4ab62be4ddbc9125f53`
 dahua,/image/lgbg.jpg,md5=`4ff53be6165e430af41d782e00207fda`
+dahua,/,body=`DahuaWebUI`
+dahua,/,headers=`DahuaWeb`
 dlink-dcs,/,headers=`realm="DCS`
 dlink-dcs,/,headers=`realm=DCS`
+dlink-dcs,/,body=`D-Link`&&body=`DCS`
 dvr,/login.rsp,title=`LOGIN`
+dvr,/,headers=`JAWS`&&headers=`DVR`
 geovision,/,title=`GeoVision`
 hikvision,/,body=`doc/page/login.asp`
 hikvision,/,body=`g_szCacheTime`&&body=`iVMS`
@@ -35,13 +44,17 @@ tenda,/,title=`Tenda|登录`
 tenda,/,title=`Tenda | Web Master`
 tenda,/,title=`Tenda | Wireless Router`
 tenda,/favicon.ico,md5=`fa31b29eab2da688b11d8fafc5fc6b27`
+tenda,/,body=`Tenda`&&body=`CP3`
 uniview,/favicon.ico,md5=`1536f25632f78fb03babedcb156d3f69`
 uniview,/skin/default_1/images/logo.png,md5=`c30a692ad0d1324389485de06c96d9b8`
+uniview,/,title=`Uniview`
+uniview,/,body=`uniview`&&body=`login`
 xiongmai,/,title=`NETSurveillance WEB`
 xiongmai,/,title=`NetSurveillance WEB`
 # Reolink
 reolink,/,title=`Reolink`
 reolink,/,body=`reolink`&&body=`login`
+reolink,/,headers=`Reolink`
 # Amcrest
 amcrest,/,title=`Amcrest`
 amcrest,/,body=`amcrest`&&body=`login`
@@ -49,12 +62,28 @@ amcrest,/,headers=`Amcrest`
 # TP-Link
 tplink,/,title=`TP-LINK`
 tplink,/,body=`tplinkcloud`
+tplink,/,title=`VIGI`
+tplink,/,body=`VIGI`&&body=`NVR`
 # Lorex
 lorex,/,title=`Lorex`
 lorex,/,body=`lorex`&&body=`login`
+lorex,/,headers=`Lorex`
 # Honeywell
 honeywell,/,title=`Honeywell`
 honeywell,/,body=`honeywell`&&body=`login`
+honeywell,/,headers=`Honeywell`
 # Foscam
 foscam,/,title=`IPCam Client`
 foscam,/,body=`foscam`&&body=`login`
+# Ezviz (Hikvision subsidiary)
+ezviz,/,title=`EZVIZ`
+ezviz,/,body=`ezviz`&&body=`login`
+ezviz,/,headers=`EZVIZ`
+# DigiEver NVR
+digiever,/,title=`DigiEver`
+digiever,/,body=`DigiEver`
+digiever,/,body=`digiever`&&body=`login`
+# Hanwha Wisenet
+hanwha,/,title=`Wisenet`
+hanwha,/,body=`wisenet`
+hanwha,/,title=`Hanwha`

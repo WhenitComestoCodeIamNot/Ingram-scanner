@@ -22,6 +22,7 @@ _config = {
         '',
     ],
     'user_agent': net.get_user_agent(),  # fallback UA; per-request rotation used when evasion active
+    'timeout': 3,
     'ports': [
         # Standard HTTP
         80, 81, 82, 83, 84, 85, 88,
@@ -34,6 +35,7 @@ _config = {
         # Other common camera ports
         2051, 8888, 9000, 9080,
         # Device-specific
+        3500,   # Lorex DP Service
         7001, 34567, 37777, 49152, 55555,
     ],
 

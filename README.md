@@ -1,8 +1,8 @@
 # Ingram - Network Camera Vulnerability Scanner
 
-A fast, modular vulnerability scanning framework for network cameras (IP cameras, NVRs, DVRs). Supports 20+ device brands with 30+ exploits including CVE-based attacks, weak credential testing, authentication bypass, and RTSP stream detection.
+A fast, modular vulnerability scanning framework for network cameras (IP cameras, NVRs, DVRs). Supports 26+ device brands with 45+ exploits covering 22 CVEs (2017-2025), weak credential testing, authentication bypass, and RTSP stream detection.
 
-> Private fork of [jorhelp/Ingram](https://github.com/jorhelp/Ingram) with significant enhancements.
+> Fork of [jorhelp/Ingram](https://github.com/jorhelp/Ingram) with significant enhancements.
 
 ---
 
@@ -45,7 +45,7 @@ The original had **no evasion capabilities** — it scanned sequentially at full
 
 The original supported **17 device brands** with **26 POCs** and CVEs from 2017-2021.
 
-This fork adds **6 new device brands** and **4 new CVE exploits**, bringing totals to **23 brands** and **36+ POCs** with CVEs through 2023.
+This fork adds **9 new device brands** and **13 new CVE exploits**, bringing totals to **26 brands** and **45+ POCs** with CVEs through 2025.
 
 **New device brands added:**
 
@@ -53,26 +53,65 @@ This fork adds **6 new device brands** and **4 new CVE exploits**, bringing tota
 |-------|----------|-----------|
 | Reolink | Not supported | Fingerprint rules + JSON API weak password POC |
 | Amcrest | Not supported | Fingerprint rules + HTTP Digest weak password + unauthenticated info disclosure POC |
-| Lorex | Not supported | Fingerprint rules + RPC2_Login weak password POC |
+| Lorex | Not supported | Fingerprint rules + weak password + CVE-2024-52544 stack overflow detection |
 | Honeywell | Not supported | Fingerprint rules + ISAPI weak password POC |
 | Foscam | Not supported | Fingerprint rules + CGIProxy weak password POC |
-| TP-Link | Not supported | Fingerprint rules added |
+| TP-Link / VIGI | Not supported | Fingerprint rules for Tapo and VIGI NVR |
+| Ezviz | Not supported | Fingerprint rules + CVE-2023-48121 auth bypass POC |
+| DigiEver | Not supported | Fingerprint rules + CVE-2023-52163 command injection POC (CISA KEV) |
+| Hanwha Wisenet | Not supported | Fingerprint rules added |
 
 **New CVE exploits added:**
 
-| CVE | Target | CVSS | Original | This Fork |
-|-----|--------|------|----------|-----------|
-| CVE-2022-30563 | Dahua | 7.4 | Not covered | ONVIF authentication bypass via WS-UsernameToken replay |
-| CVE-2023-6895 | Hikvision/DVR | 9.8 | Not covered | Command injection via `restore` endpoint |
-| CVE-2023-28808 | Hikvision | 9.1 | Not covered | Access control authentication bypass |
-| Amcrest Disclosure | Amcrest | Medium | Not covered | Unauthenticated config leak via `/web_caps/webCapsConfig` |
+| CVE | Target | CVSS | Type |
+|-----|--------|------|------|
+| CVE-2022-30563 | Dahua | 7.4 | ONVIF authentication bypass via WS-UsernameToken replay |
+| CVE-2023-6895 | Hikvision/DVR | 9.8 | Command injection via ISAPI endpoint |
+| CVE-2023-28808 | Hikvision | 9.1 | Access control authentication bypass |
+| CVE-2024-7029 | AVTECH | 8.8 | Unauthenticated command injection (CISA KEV, 38K+ exposed) |
+| CVE-2023-21413 | Axis | 9.1 | OS command injection in AXIS OS |
+| CVE-2023-21415 | Axis | 6.5 | VAPIX API path traversal |
+| CVE-2023-52163 | DigiEver NVR | 8.8 | Command injection (CISA KEV, actively exploited by Mirai) |
+| CVE-2023-30353 | Tenda CP3 | 9.8 | Unauthenticated RCE |
+| CVE-2025-31700 | Dahua | 8.1 | Pre-auth RCE via ONVIF Host header overflow |
+| CVE-2023-48121 | Ezviz | High | Camera authentication bypass |
+| CVE-2024-52544 | Lorex | Critical | Stack buffer overflow on DP Service (Pwn2Own 2024) |
+| CVE-2021-45039 | Uniview | 8.9 | Pre-auth RCE via UDP 7788 + hardcoded creds |
+| Amcrest Disclosure | Amcrest | Medium | Unauthenticated config leak via `/web_caps/webCapsConfig` |
+
+**Full CVE coverage (22 total):**
+
+| CVE | Target | CVSS | Source |
+|-----|--------|------|--------|
+| CVE-2017-7921 | Hikvision | High | Original |
+| CVE-2017-14514 | Tenda W15E | High | Original |
+| CVE-2018-6479 | Netwave | High | Original |
+| CVE-2018-17240 | Netwave | High | Original |
+| CVE-2018-9995 | Generic DVR | High | Original |
+| CVE-2020-25078 | D-Link DCS | High | Original |
+| CVE-2021-33044 | Dahua | High | Original |
+| CVE-2021-33045 | Dahua NVR | High | Original |
+| CVE-2021-36260 | Hikvision/Uniview | High | Original |
+| CVE-2021-45039 | Uniview | 8.9 | **New** |
+| CVE-2022-30563 | Dahua | 7.4 | **New** |
+| CVE-2023-6895 | Hikvision/DVR | 9.8 | **New** |
+| CVE-2023-21413 | Axis | 9.1 | **New** |
+| CVE-2023-21415 | Axis | 6.5 | **New** |
+| CVE-2023-28808 | Hikvision | 9.1 | **New** |
+| CVE-2023-30353 | Tenda CP3 | 9.8 | **New** |
+| CVE-2023-48121 | Ezviz | High | **New** |
+| CVE-2023-52163 | DigiEver NVR | 8.8 | **New** |
+| CVE-2024-7029 | AVTECH | 8.8 | **New** |
+| CVE-2024-52544 | Lorex | Critical | **New** |
+| CVE-2025-31700 | Dahua | 8.1 | **New** |
+| Amcrest Disclosure | Amcrest | Medium | **New** |
 
 **Credential & port expansion:**
 
 | | Original | This Fork |
 |---|----------|-----------|
 | **Passwords** | 6 generic (`admin`, `12345`, etc.) | 19 total — added brand-specific: `888888`, `666666`, `000000`, blank password, `supervisor`, `admin123`, `default`, `pass` |
-| **Ports scanned** | ~15 HTTP ports | 29 ports — added HTTPS (443, 8443), RTSP (554, 8554), device-specific (34567, 37777, 49152, 55555, 8888) |
+| **Ports scanned** | ~15 HTTP ports | 30 ports — added HTTPS (443, 8443), RTSP (554, 8554), device-specific (3500, 34567, 37777, 49152, 55555, 8888) |
 | **Comment support** | No | Lines starting with `#` are ignored in target files and `rules.csv` |
 
 ### RTSP Stream Detection
@@ -118,29 +157,33 @@ See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 | Brand | POC Types |
 |-------|-----------|
 | **Hikvision** | Weak password, CVE-2017-7921, CVE-2021-36260, CVE-2023-6895, CVE-2023-28808 |
-| **Dahua** | Weak password, CVE-2021-33044, CVE-2021-33045, CVE-2022-30563, Disabled auth |
-| **Uniview** | Credential disclosure, CVE-2021-36260 variant |
+| **Dahua** | Weak password, CVE-2021-33044, CVE-2021-33045, CVE-2022-30563, CVE-2025-31700, Disabled auth |
+| **Uniview** | Credential disclosure, CVE-2021-36260 variant, CVE-2021-45039 |
+| **Axis** | Weak password, CVE-2023-21413, CVE-2023-21415 |
+| **AVTECH** | Weak password, CVE-2024-7029 |
+| **Tenda** | CVE-2018-17240, CVE-2023-30353 |
 | **Xiongmai** | Weak password, ONVIF bypass |
 | **Reolink** | Weak password |
 | **Amcrest** | Weak password, Info disclosure |
-| **Lorex** | Weak password |
+| **Lorex** | Weak password, CVE-2024-52544 |
 | **Honeywell** | Weak password |
 | **Foscam** | Weak password |
+| **Ezviz** | CVE-2023-48121 |
+| **DigiEver** | CVE-2023-52163 |
+| **Hanwha Wisenet** | Fingerprint detection |
 | **D-Link DCS** | CVE-2020-25078 |
-| **Avtech** | Weak password |
-| **Axis** | Weak password |
+| **TP-Link / VIGI** | Fingerprint detection |
 | **GeoVision** | Weak password |
 | **Instar** | Weak password |
-| **Netwave** | Weak password |
+| **Netwave** | Weak password, CVE-2018-6479, CVE-2018-17240 |
 | **Nuuo** | Weak password |
 | **ReeCam** | Weak password |
-| **Tenda** | CVE-2018-17240 |
 | **Generic DVR** | Weak password, CVE-2018-9995 |
 | **Generic RTSP** | Default credential testing |
 
 ## Features
 
-- **30+ vulnerability POCs** including CVEs from 2017-2023
+- **45+ vulnerability POCs** including 22 CVEs from 2017-2025
 - **Anti-detection system** — rate limiting, proxy rotation, User-Agent rotation, target randomization, stealth scanning mode
 - **RTSP stream detection** — probe port 554/8554 for accessible camera streams
 - **Multiple output formats** — CSV, JSON, and HTML reports

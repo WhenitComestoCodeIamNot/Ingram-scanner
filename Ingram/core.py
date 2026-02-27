@@ -116,27 +116,34 @@ class Core:
         # Rate limiting per target
         self.config.rate_limiter.wait(ip)
 
-        # Port scanning
+        # Port scanning — find open ports first, then fingerprint
+        open_ports = []
         for port in ports:
+            # Skip RTSP-only ports here; they're handled separately below
+            if int(port) in (554, 8554):
+                continue
             if port_scan(ip, port, self.config.timeout):
                 logger.info(f"{ip} port {port} is open")
-                # Fingerprint
-                if product := fingerprint(ip, port, self.config):
-                    logger.info(f"{ip}:{port} is {product}")
-                    verified = False
-                    # poc verify & exploit
-                    for poc in self.poc_dict[product]:
-                        # Rate limit between POC attempts
-                        self.config.rate_limiter.wait(ip)
-                        if results := poc.verify(ip, port):
-                            verified = True
-                            self.data.add_found()
-                            self.data.add_vulnerable(results[:6])
-                            # snapshot
-                            if not self.config.disable_snapshot:
-                                self.snapshot_pipeline.put((poc.exploit, results))
-                    if not verified:
-                        self.data.add_not_vulnerable([ip, str(port), product])
+                open_ports.append(port)
+
+        # Fingerprint and test open ports
+        for port in open_ports:
+            if product := fingerprint(ip, port, self.config):
+                logger.info(f"{ip}:{port} is {product}")
+                verified = False
+                # poc verify & exploit
+                for poc in self.poc_dict[product]:
+                    # Rate limit between POC attempts
+                    self.config.rate_limiter.wait(ip)
+                    if results := poc.verify(ip, port):
+                        verified = True
+                        self.data.add_found()
+                        self.data.add_vulnerable(results[:6])
+                        # snapshot
+                        if not self.config.disable_snapshot:
+                            self.snapshot_pipeline.put((poc.exploit, results))
+                if not verified:
+                    self.data.add_not_vulnerable([ip, str(port), product])
 
         # RTSP probing (separate from HTTP fingerprinting)
         if not getattr(self.config, 'disable_rtsp', False) and self.rtsp_poc:
