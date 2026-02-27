@@ -77,11 +77,24 @@ class POCTemplate:
                 res = requests.get(url, auth=auth, timeout=self.config.timeout, verify=False, headers=headers, stream=True, proxies=proxies)
             else:
                 res = requests.get(url, timeout=self.config.timeout, verify=False, headers=headers, stream=True, proxies=proxies)
-            if res.status_code == 200 and 'head' not in res.text:
-                with open(img_path, 'wb') as f:
-                    for content in res.iter_content(10240):
-                        f.write(content)
+            if res.status_code != 200:
+                logger.debug(f"Snapshot failed: {url} returned {res.status_code}")
+                return 0
+            # Check content-type to avoid saving HTML error pages
+            content_type = res.headers.get('Content-Type', '').lower()
+            if 'html' in content_type or 'text' in content_type:
+                logger.debug(f"Snapshot skipped: {url} returned {content_type}")
+                return 0
+            # Stream directly to file (don't use res.text which consumes the stream)
+            total = 0
+            with open(img_path, 'wb') as f:
+                for chunk in res.iter_content(10240):
+                    f.write(chunk)
+                    total += len(chunk)
+            if total > 0:
                 return 1
+            # Empty response — remove the file
+            os.remove(img_path)
         except Exception as e:
             logger.error(e)
         return 0

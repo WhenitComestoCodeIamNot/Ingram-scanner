@@ -87,7 +87,7 @@ def _check_previous_state(config):
 
 def run():
     try:
-        # Ensure UTF-8 for block-character logo art on Windows
+        # Ensure UTF-8 for box-drawing dashboard on Windows
         from Ingram.utils.status_bar import _ensure_utf8_stdout
         _ensure_utf8_stdout()
 
